@@ -1,0 +1,6 @@
+discord.py
+python-dotenv
+procyclingstats
+unidecode
+pycountry
+matplotlib
