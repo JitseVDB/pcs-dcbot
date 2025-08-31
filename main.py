@@ -1,6 +1,8 @@
 import discord
 from discord import app_commands
+from constants import MAX_FIELD_LENGTH
 from pcs_utils.rider_utils import *
+from pcs_scraper.season_results_scraper import get_season_results
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
 import os
@@ -20,6 +22,24 @@ class MyClient(discord.Client):
         await self.tree.sync(guild=discord.Object(id=GUILD_ID))
 
 client = MyClient()
+
+def split_text_preserving_lines(text, max_len=MAX_FIELD_LENGTH):
+    """
+    Split a text into chunks <= max_len without splitting lines.
+    Returns a list of strings.
+    """
+    lines = text.split("\n")
+    chunks = []
+    current = ""
+    for line in lines:
+        if len(current) + len(line) + 1 > max_len:
+            chunks.append(current)
+            current = line
+        else:
+            current += ("\n" if current else "") + line
+    if current:
+        chunks.append(current)
+    return chunks
 
 # birthdate command
 @client.tree.command(
@@ -209,7 +229,7 @@ async def points_per_speciality_command(interaction: discord.Interaction, name: 
         print(f"Error in points_per_speciality_command for {name}: {e}")
         await interaction.response.send_message("An unexpected error occurred while fetching points per speciality.")
 
-# season result command
+# season results command
 @client.tree.command(
     name="season-results",
     description="Get season results of a rider",
@@ -217,14 +237,93 @@ async def points_per_speciality_command(interaction: discord.Interaction, name: 
 )
 @app_commands.describe(name="Full name of the rider")
 async def season_results_cmd(interaction: discord.Interaction, name: str):
-    results = get_season_results(name)
-    embeds = format_season_results_embeds(results, name)
+    await interaction.response.defer()  # defer in case scraping takes time
 
-    # Send first embed as initial response
-    await interaction.response.send_message(embed=embeds[0])
+    try:
+        races = get_season_results(name)
+    except Exception as e:
+        await interaction.followup.send(f"Failed to fetch season results for '{name}': {e}")
+        return
 
-    # Send the rest as followups
-    for embed in embeds[1:]:
+    if not races:
+        await interaction.followup.send(f"No season results found for '{name}'.")
+        return
+
+    embeds = []
+    current_embed = discord.Embed(
+        title=f"{name} - Season Results",
+        color=discord.Color.from_rgb(255, 255, 255)
+    )
+
+    for race, info in races.items():
+        if "stages" in info:  # Stage race
+            race_line = f"**{race} {info['flag']}**\n{info['date_range']}"
+            stage_lines = []
+            classification_lines = []
+
+            # Handle stages
+            for stage in reversed(info.get("stages", [])):
+                stage_desc = stage.get("description", "")
+                stage_line = (
+                    f"{stage_desc}\n"
+                    f"• {stage['date']} - {stage['result']} - {stage['distance']} km - "
+                    f"{stage['pcs_points']} PCS - {stage['uci_points']} UCI"
+                )
+                stage_lines.append(stage_line)
+
+            # Handle classifications (no date/distance)
+            seen_classes = set()
+            for c in info.get("classifications", []):
+                cname = c['name']
+                if cname.lower() in seen_classes:
+                    continue
+                seen_classes.add(cname.lower())
+
+                class_line = (
+                    f"{cname}\n"
+                    f"• {c['result']} - {c['pcs_points']} PCS - {c['uci_points']} UCI"
+                )
+                classification_lines.append(class_line)
+
+            # Combine into one block
+            value_parts = [race_line]
+            if stage_lines:
+                value_parts.extend(stage_lines)
+            if classification_lines:
+                value_parts.append("\n**Classifications:**")  # Visual header for clarity
+                value_parts.extend(classification_lines)
+
+            value = "\n".join(value_parts)
+
+            # Split into chunks if needed
+            for chunk in split_text_preserving_lines(value):
+                current_embed.add_field(name="\u200b", value=chunk, inline=False)
+
+        else:  # One-day race
+            value = (
+                f"**{race} {info['flag']}**\n"
+                f"{info['date']} - {info['result']} - {info['distance']} km - "
+                f"{info['pcs_points']} PCS - {info['uci_points']} UCI"
+            )
+
+            if len(value) > MAX_FIELD_LENGTH:
+                for chunk in split_text_preserving_lines(value):
+                    current_embed.add_field(name="\u200b", value=chunk, inline=False)
+            else:
+                current_embed.add_field(name="\u200b", value=value, inline=False)
+
+        # If embed is full, push and start new
+        if sum(len(f.value) for f in current_embed.fields) >= 6000:  # embed total limit
+            embeds.append(current_embed)
+            current_embed = discord.Embed(
+                title=f"{name} - Season Results",
+                color=discord.Color.from_rgb(255, 255, 255)
+            )
+
+    embeds.append(current_embed)
+
+    # Send all embeds
+    for embed in embeds:
         await interaction.followup.send(embed=embed)
 
 client.run(token)

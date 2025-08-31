@@ -333,11 +333,3 @@ def get_rider_points_per_speciality(name: str):
         return rider.points_per_speciality()
     except Exception:
         return None
-
-def get_season_results(name: str):
-    pcs_name = reformat_name(name)
-    try:
-        rider = Rider(f"rider/{pcs_name}")
-        return rider.season_results()
-    except Exception:
-        return None
