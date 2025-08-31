@@ -1,63 +1,9 @@
+from helpers.format_helper import reformat_name
+from helpers.country_helper import country_code_to_emoji
 from constants import rider_base_url
-from unidecode import unidecode
 from bs4 import BeautifulSoup
 import requests
 import re
-
-def reformat_name(name: str) -> str:
-    """
-    Reformat a rider's name into the ProCyclingStats (PCS) URL format.
-
-    PCS rider URLs are structured as:
-        https://www.procyclingstats.com/rider/{pcs_name}
-
-    The PCS name is a normalized, lowercase, dash-separated string with no accents
-    or special characters.
-
-    Transformation steps:
-        1. Convert accented characters to ASCII (e.g., "Pogačar" → "Pogacar").
-        2. Convert to lowercase.
-        3. Replace spaces with dashes.
-        4. Remove all non-alphanumeric characters except dashes.
-        5. Collapse multiple dashes into one.
-        6. Strip leading/trailing dashes.
-
-    Parameters:
-    name : str
-        The rider's full name (e.g., "Tadej Pogačar").
-
-    Returns:
-    str
-        The normalized PCS-compatible rider name (e.g., "tadej-pogacar").
-    """
-    # Convert accented letters to ASCII equivalents
-    name = unidecode(name)
-
-    # Lowercase
-    name = name.lower()
-
-    # Replace spaces with dashes
-    name = re.sub(r'\s+', '-', name)
-
-    # Remove anything not a-z, 0-9, or dash
-    name = re.sub(r'[^a-z0-9-]', '', name)
-
-    # Remove consecutive dashes
-    name = re.sub(r'-+', '-', name)
-
-    # Strip leading/trailing dashes
-    name = name.strip('-')
-
-    return name
-
-def country_code_to_emoji(code: str) -> str:
-    """
-    Convert a 2-letter ISO country code to the corresponding flag emoji.
-    Example: 'nl' -> 🇳🇱
-    """
-    if len(code) != 2:
-        return code  # fallback, return original if not 2 letters
-    return chr(ord(code[0].upper()) + 127397) + chr(ord(code[1].upper()) + 127397)
 
 def parse_races(container):
     """
@@ -208,28 +154,48 @@ def get_season_results(name: str):
     """
     Scrape ProCyclingStats (PCS) for a rider's season results.
 
-    This function takes a rider's full name, reformats it into the PCS URL format,
+    This function takes a rider's full name, converts it into the PCS URL format,
     fetches the rider's results page, and parses the results table into a structured
-    dictionary. Both one-day races and stage races are supported.
+    dictionary. It supports both one-day races and stage races, including stage
+    classifications (e.g., general, points, mountains, youth).
 
-    For one-day races:
-        The dictionary entry is keyed by the race name (including its UCI category),
-        and the value contains race details such as date, result, flag, distance,
-        PCS points, and UCI points.
+    One-day races:
+        Represented as a dictionary keyed by the race name (including its UCI category).
+        Each entry contains:
+            - date (str): race date (e.g., "04.03")
+            - result (str): finishing position or "DNF"/"DNS"
+            - flag (str): country flag emoji (e.g., "🇧🇪")
+            - distance (str): race distance in km
+            - pcs_points (str): PCS points earned (may be "0")
+            - uci_points (str): UCI points earned (may be "0")
 
-    For stage races:
-        The dictionary entry is keyed by the stage race name (including its UCI category),
-        and the value contains the overall date range, flag, and a list of stage results.
-        Each stage result is represented as a dictionary with the same fields as
-        one-day races (except the flag is usually omitted at the stage level).
+    Stage races:
+        Represented as a dictionary keyed by the stage race name (including UCI category).
+        Each entry contains:
+            - date_range (str): overall date range of the stage race (e.g., "22.03 › 26.03")
+            - flag (str): country flag emoji of the event
+            - stages (list[dict]): list of stage results, each containing:
+                - date (str): stage date
+                - result (str): finishing position or "DNF"/"DNS"
+                - distance (str): stage distance in km
+                - pcs_points (str): PCS points earned
+                - uci_points (str): UCI points earned
+                - description (str): stage name or description
+            - classifications (list[dict]): list of race classifications, each containing:
+                - name (str): classification name (e.g., "General classification")
+                - result (str): finishing position
+                - pcs_points (str): PCS points earned
+                - uci_points (str): UCI points earned
 
     Parameters:
     name : str
-        Rider's full name (e.g. "Bas Tietema", "Jasper Philipsen").
+        Rider's full name (e.g., "Remco Evenepoel").
 
     Returns:
     dict
-        Dictionary of race results for the season, keyed by race name.
+        Dictionary of race results keyed by race name. Each entry is either a one-day race
+        dictionary or a stage race dictionary with stages and classifications.
+        Returns an empty dictionary if no results are found.
     """
     pcs_name = reformat_name(name)
     url = rider_base_url + pcs_name
