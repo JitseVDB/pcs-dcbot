@@ -1,12 +1,11 @@
-import discord
+from helpers.country_helper import country_to_emoji
+from pcs_scraper.rider_info_scraper import get_rider_age, get_rider_nationality, get_rider_weight, get_rider_height, get_rider_birthdate, get_rider_place_of_birth
+from pcs_scraper.season_results_scraper import get_season_results
 from discord import app_commands
 from constants import MAX_FIELD_LENGTH
 from pcs_utils.rider_utils import *
-from pcs_scraper.season_results_scraper import get_season_results
 from dotenv import load_dotenv
-import matplotlib.pyplot as plt
 import os
-import io
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
@@ -55,6 +54,20 @@ async def birthdate(interaction: discord.Interaction, name: str):
     else:
         await interaction.response.send_message(f"The birthdate of **{name}** is {rider_birthdate}")
 
+# age command
+@client.tree.command(
+    name="age",
+    description="Get the age of a rider",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.describe(name="Full name of the rider")
+async def birthdate(interaction: discord.Interaction, name: str):
+    rider_age = get_rider_age(name)
+    if rider_age is None:
+        await interaction.response.send_message(f"No age found for '{name}'")
+    else:
+        await interaction.response.send_message(f"**{name}** is {rider_age} years old")
+
 # place of birth command
 @client.tree.command(
     name="place-of-birth",
@@ -81,7 +94,7 @@ async def weight(interaction: discord.Interaction, name: str):
     if rider_weight is None:
         await interaction.response.send_message(f"No weight found for '{name}'")
     else:
-        await interaction.response.send_message(f"**{name}** weighs {rider_weight} kg")
+        await interaction.response.send_message(f"**{name}** weighs {rider_weight}")
 
 # height command
 @client.tree.command(
@@ -95,7 +108,7 @@ async def height(interaction: discord.Interaction, name: str):
     if rider_height is None:
         await interaction.response.send_message(f"No height found for '{name}'")
     else:
-        await interaction.response.send_message(f"**{name}** is {rider_height} m tall")
+        await interaction.response.send_message(f"**{name}** is {rider_height} tall")
 
 # nationality command
 @client.tree.command(
@@ -106,10 +119,11 @@ async def height(interaction: discord.Interaction, name: str):
 @app_commands.describe(name="Full name of the rider")
 async def nationality(interaction: discord.Interaction, name: str):
     rider_nationality = get_rider_nationality(name)
+    flag_nationality = country_to_emoji(rider_nationality)
     if rider_nationality is None:
         await interaction.response.send_message(f"No nationality found for '{name}'")
     else:
-        await interaction.response.send_message(f"**{name}**'s nationality is {rider_nationality}")
+        await interaction.response.send_message(f"**{name}**'s nationality is {rider_nationality} {flag_nationality}")
 
 # rider image command
 @client.tree.command(

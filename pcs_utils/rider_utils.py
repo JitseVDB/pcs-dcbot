@@ -1,4 +1,5 @@
 from unidecode import unidecode
+from helpers.format_helper import reformat_name
 import re
 import pycountry
 from procyclingstats import Rider
@@ -236,67 +237,6 @@ def country_with_flag(code: str) -> str:
     full_name = country_full_name(code)
     flag = country_flag_emoji(code)
     return f"{full_name} {flag}"
-
-def reformat_name(name: str) -> str:
-    # Convert accented letters to ASCII equivalents
-    name = unidecode(name)
-
-    # Lowercase
-    name = name.lower()
-
-    # Replace spaces with dashes
-    name = re.sub(r'\s+', '-', name)
-
-    # Remove anything not a-z, 0-9, or dash
-    name = re.sub(r'[^a-z0-9-]', '', name)
-
-    # Remove consecutive dashes
-    name = re.sub(r'-+', '-', name)
-
-    # Strip leading/trailing dashes
-    name = name.strip('-')
-
-    return name
-
-def get_rider_birthdate(name: str):
-    pcs_name = reformat_name(name)
-    try:
-        rider = Rider(f"rider/{pcs_name}")
-        return rider.birthdate()
-    except Exception:
-        return None
-
-def get_rider_place_of_birth(name: str):
-    pcs_name = reformat_name(name)
-    try:
-        rider = Rider(f"rider/{pcs_name}")
-        return rider.place_of_birth()
-    except Exception:
-        return None
-
-def get_rider_weight(name: str):
-    pcs_name = reformat_name(name)
-    try:
-        rider = Rider(f"rider/{pcs_name}")
-        return rider.weight()
-    except Exception:
-        return None
-
-def get_rider_height(name: str):
-    pcs_name = reformat_name(name)
-    try:
-        rider = Rider(f"rider/{pcs_name}")
-        return rider.height()
-    except Exception:
-        return None
-
-def get_rider_nationality(name: str):
-    pcs_name = reformat_name(name)
-    try:
-        rider = Rider(f"rider/{pcs_name}")
-        return country_with_flag(rider.nationality())
-    except Exception:
-        return None
 
 def get_rider_image_url(name: str):
     pcs_name = reformat_name(name)
