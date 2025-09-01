@@ -238,17 +238,6 @@ def country_with_flag(code: str) -> str:
     flag = country_flag_emoji(code)
     return f"{full_name} {flag}"
 
-def get_rider_image_url(name: str):
-    pcs_name = reformat_name(name)
-    try:
-        rider = Rider(f"rider/{pcs_name}")
-        relative_url = rider.image_url()
-        if relative_url:
-            return f"https://www.procyclingstats.com/{relative_url}"
-        return None
-    except Exception:
-        return None
-
 
 def get_rider_team_history(name: str):
     pcs_name = reformat_name(name)

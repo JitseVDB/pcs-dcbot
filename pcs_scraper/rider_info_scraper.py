@@ -1,5 +1,5 @@
 from helpers.format_helper import reformat_name
-from constants import rider_base_url
+from constants import rider_base_url, pcs_base_url
 from bs4 import BeautifulSoup
 import requests
 
@@ -97,4 +97,27 @@ def get_rider_nationality(name: str):
     """Return the rider's nationality as a string (e.g., 'Slovenia')."""
     return _fetch_rider_info(name).get("nationality")
 
+def get_rider_image_url(name: str):
+    """
+    Fetch the profile image URL for a rider from ProCyclingStats (PCS).
+
+    Args:
+        name (str): Rider's full name in plain text (e.g., "Tadej Pogacar").
+                    This will be reformatted with `reformat_name()` to match PCS URL conventions.
+
+    Returns:
+        str: The full absolute URL to the rider's profile image.
+
+    Raises:
+        requests.HTTPError: If the request to the rider page fails (e.g., 404 or 500).
+        AttributeError: If no <img> tag is found on the rider's profile page.
+    """
+    pcs_name = reformat_name(name)
+    url = rider_base_url + pcs_name
+
+    result = requests.get(url)
+    result.raise_for_status()
+    doc = BeautifulSoup(result.text, "html.parser")
+    img_src = doc.find("img")["src"]
+    return pcs_base_url + img_src
 

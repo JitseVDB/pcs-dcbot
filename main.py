@@ -1,5 +1,5 @@
 from helpers.country_helper import country_to_emoji
-from pcs_scraper.rider_info_scraper import get_rider_age, get_rider_nationality, get_rider_weight, get_rider_height, get_rider_birthdate, get_rider_place_of_birth
+from pcs_scraper.rider_info_scraper import get_rider_age, get_rider_nationality, get_rider_weight, get_rider_height, get_rider_birthdate, get_rider_place_of_birth, get_rider_image_url
 from pcs_scraper.season_results_scraper import get_season_results
 from discord import app_commands
 from constants import MAX_FIELD_LENGTH
@@ -140,13 +140,13 @@ async def rider_image_command(interaction: discord.Interaction, name: str):
     else:
         # Create an embed
         embed = discord.Embed(
-            title=f"{name} — Rider Image",
+            title=f"{name} - Rider Image",
             color=(255 << 16) + (255 << 8) + 255
         )
         # Set the image
         embed.set_image(url=image_url)
 
-        # Optionally, add a footer or description
+        # Add a footer or description
         embed.set_footer(text="Image from ProCyclingStats")
 
         await interaction.response.send_message(embed=embed)
@@ -166,7 +166,7 @@ async def team_history_command(interaction: discord.Interaction, name: str):
 
     # Create an embed
     embed = discord.Embed(
-        title=f"{name} — Team History",
+        title=f"{name} - Team History",
         color=(255 << 16) + (255 << 8) + 255
     )
 
@@ -206,7 +206,7 @@ async def points_per_season_command(interaction: discord.Interaction, name: str)
         image_buffer = plot_points_table_style(points_per_season_history, rider_name=name)
         file = discord.File(fp=image_buffer, filename="points.png")
         embed = discord.Embed(
-            title=f"{name} — PCS Points per Season",
+            title=f"{name} - PCS Points per Season",
             color=(255 << 16) + (255 << 8) + 255
         )
         embed.set_image(url="attachment://points.png")
