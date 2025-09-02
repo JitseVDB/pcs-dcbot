@@ -150,63 +150,29 @@ def parse_races(container):
 
     return races
 
-def get_season_results(name: str):
+def get_season_results(name: str, season: int):
     """
-    Scrape ProCyclingStats (PCS) for a rider's season results.
-
-    This function takes a rider's full name, converts it into the PCS URL format,
-    fetches the rider's results page, and parses the results table into a structured
-    dictionary. It supports both one-day races and stage races, including stage
-    classifications (e.g., general, points, mountains, youth).
-
-    One-day races:
-        Represented as a dictionary keyed by the race name (including its UCI category).
-        Each entry contains:
-            - date (str): race date (e.g., "04.03")
-            - result (str): finishing position or "DNF"/"DNS"
-            - flag (str): country flag emoji (e.g., "🇧🇪")
-            - distance (str): race distance in km
-            - pcs_points (str): PCS points earned (may be "0")
-            - uci_points (str): UCI points earned (may be "0")
-
-    Stage races:
-        Represented as a dictionary keyed by the stage race name (including UCI category).
-        Each entry contains:
-            - date_range (str): overall date range of the stage race (e.g., "22.03 › 26.03")
-            - flag (str): country flag emoji of the event
-            - stages (list[dict]): list of stage results, each containing:
-                - date (str): stage date
-                - result (str): finishing position or "DNF"/"DNS"
-                - distance (str): stage distance in km
-                - pcs_points (str): PCS points earned
-                - uci_points (str): UCI points earned
-                - description (str): stage name or description
-            - classifications (list[dict]): list of race classifications, each containing:
-                - name (str): classification name (e.g., "General classification")
-                - result (str): finishing position
-                - pcs_points (str): PCS points earned
-                - uci_points (str): UCI points earned
+    Scrape a rider's race results for a specific season from PCS.
 
     Parameters:
     name : str
-        Rider's full name (e.g., "Remco Evenepoel").
+        Rider's full name
+    season : int
+        Year of the season to scrape
 
     Returns:
     dict
-        Dictionary of race results keyed by race name. Each entry is either a one-day race
-        dictionary or a stage race dictionary with stages and classifications.
-        Returns an empty dictionary if no results are found.
+        Race results as parsed by `parse_races`.
     """
     pcs_name = reformat_name(name)
-    url = rider_base_url + pcs_name
+    url = f"{rider_base_url}{pcs_name}/{season}"
 
     result = requests.get(url)
     result.raise_for_status()
     doc = BeautifulSoup(result.text, "html.parser")
-    container = doc.find("div", id="rdrResultCont")
 
+    container = doc.find("div", id="rdrResultCont")
     if not container:
-        print(f"No results found for {name} at {url}")
         return {}
 
     return parse_races(container)

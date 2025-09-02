@@ -6,7 +6,8 @@ from helpers.plotter import plot_points_table_style, plot_points_per_speciality_
 from helpers.format_helper import split_text_preserving_lines
 from helpers.country_helper import country_to_emoji
 from services.program_comparison import compare_programs
-from constants import MAX_FIELD_LENGTH
+from services.result_comparison import compare_results
+from constants import MAX_FIELD_LENGTH, MAX_EMBED_DESCRIPTION_LENGTH
 from discord import app_commands
 from dotenv import load_dotenv
 import discord
@@ -236,12 +237,15 @@ async def points_per_speciality_command(interaction: discord.Interaction, name: 
     description="Get season results of a rider",
     guild=discord.Object(id=GUILD_ID)
 )
-@app_commands.describe(name="Full name of the rider")
-async def season_results_cmd(interaction: discord.Interaction, name: str):
+@app_commands.describe(
+    name="Full name of the rider",
+    season="The year of the season"
+)
+async def season_results_cmd(interaction: discord.Interaction, name: str, season: int):
     await interaction.response.defer()  # defer in case scraping takes time
 
     try:
-        races = get_season_results(name)
+        races = get_season_results(name, season)
     except Exception as e:
         await interaction.followup.send(f"Failed to fetch season results for '{name}': {e}")
         return
@@ -252,7 +256,7 @@ async def season_results_cmd(interaction: discord.Interaction, name: str):
 
     embeds = []
     current_embed = discord.Embed(
-        title=f"{name} - Season Results",
+        title=f"{name} - {season} Season Results",
         color=discord.Color.from_rgb(255, 255, 255)
     )
 
@@ -394,5 +398,56 @@ async def rider_program(interaction: discord.Interaction, name1: str, name2: str
     embed.description = description.strip()
 
     await interaction.followup.send(embed=embed)
+
+# rider season results comparison command
+@client.tree.command(
+    name="compare-rider-season-results",
+    description="Compare the season results of 2 riders",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.describe(
+    name1="Full name of the first rider",
+    name2="Full name of the second rider",
+    season="The year of the season"
+)
+async def rider_program(interaction: discord.Interaction, name1: str, name2: str, season: int):
+    await interaction.response.defer()
+
+    comparison = compare_results(name1, name2, season)
+    if not comparison:
+        await interaction.followup.send(f"Comparison between season results of {name1} and {name2} failed.")
+        return
+
+    description = ""
+    for entry in comparison:
+        race_line = f"**{entry['date']} - {entry['flag']} {entry['race']}**"
+        stage = f" - {entry['stage_or_class']}" if entry['stage_or_class'] else ""
+        description += f"{race_line}{stage}\n"
+
+        n1_res = entry['name1_result']
+        n2_res = entry['name2_result']
+
+        if entry['winner'] == 'name1':
+            n1_res = f"{n1_res} 🏆"
+        elif entry['winner'] == 'name2':
+            n2_res = f"{n2_res} 🏆"
+
+        description += f"`{name1:<15}: {n1_res:<5}`  `{name2:<15}: {n2_res:<5}`\n\n"
+
+    # Split description if too long
+    description_chunks = split_text_preserving_lines(description, MAX_EMBED_DESCRIPTION_LENGTH)
+
+    embeds = []
+    for chunk in description_chunks:
+        embed = discord.Embed(
+            title=f"{name1} vs {name2} - Season Results Comparison",
+            description=chunk,
+            color=0xFFFFFF
+        )
+        embeds.append(embed)
+
+    # Send all embeds
+    for embed in embeds:
+        await interaction.followup.send(embed=embed)
 
 client.run(token)

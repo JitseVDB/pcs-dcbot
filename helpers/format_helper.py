@@ -1,4 +1,4 @@
-from constants import MAX_FIELD_LENGTH
+from constants import MAX_FIELD_LENGTH, MAX_EMBED_DESCRIPTION_LENGTH
 from unidecode import unidecode
 import discord
 import re
@@ -60,6 +60,24 @@ def split_text_preserving_lines(text, max_len=MAX_FIELD_LENGTH):
         Returns:
             list[str]: List of text chunks, each no longer than `max_len`.
         """
+    lines = text.split("\n")
+    chunks = []
+    current = ""
+    for line in lines:
+        if len(current) + len(line) + 1 > max_len:
+            chunks.append(current)
+            current = line
+        else:
+            current += ("\n" if current else "") + line
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def split_embed_preserving_lines(text, max_len=MAX_EMBED_DESCRIPTION_LENGTH):
+    """
+    Split text into chunks of at most `max_len` characters without breaking lines.
+    """
     lines = text.split("\n")
     chunks = []
     current = ""
