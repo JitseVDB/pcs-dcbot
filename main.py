@@ -5,6 +5,7 @@ from pcs_scraper.rider_team_history_scraper import get_rider_team_history
 from helpers.plotter import plot_points_table_style, plot_points_per_speciality_table
 from helpers.format_helper import split_text_preserving_lines
 from helpers.country_helper import country_to_emoji
+from services.program_comparison import compare_programs
 from constants import MAX_FIELD_LENGTH
 from discord import app_commands
 from dotenv import load_dotenv
@@ -351,6 +352,44 @@ async def rider_program(interaction: discord.Interaction, name: str):
     description = ""
     for race in races:
         description += f"{race['date']} - {race['flag']} {race['title']}\n"
+
+    embed.description = description.strip()
+
+    await interaction.followup.send(embed=embed)
+
+# rider program comparison command
+@client.tree.command(
+    name="compare-rider-programs",
+    description="Compare the upcoming program of 2 riders",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.describe(
+    name1="Full name of the first rider",
+    name2="Full name of the second rider"
+)
+async def rider_program(interaction: discord.Interaction, name1: str, name2: str):
+    await interaction.response.defer()
+
+    comparison = compare_programs(name1, name2)
+    if not comparison:
+        await interaction.followup.send(f"Comparison between program of {name1} and program of {name2} failed.")
+        return
+
+    # Create a white embed
+    embed = discord.Embed(
+        title=f"{name1} vs {name2} - Race Program Comparison",
+        color=(255 << 16) + (255 << 8) + 255  # white
+    )
+
+    description = ""
+    for race in comparison:
+        # Race line: date - flag - title
+        description += f"**{race['date']} - {race['flag']} {race['title']}**\n"
+
+        # Participation line using monospaced text for alignment
+        r1 = "✅" if race["name1_participating"] else "❌"
+        r2 = "✅" if race["name2_participating"] else "❌"
+        description += f"`{r1:<2} {name1:<20}`  `{r2:<2} {name2:<20}`\n\n"
 
     embed.description = description.strip()
 
