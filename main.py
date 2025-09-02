@@ -1,10 +1,14 @@
-from helpers.country_helper import country_to_emoji
 from pcs_scraper.rider_info_scraper import get_rider_age, get_rider_nationality, get_rider_weight, get_rider_height, get_rider_birthdate, get_rider_place_of_birth, get_rider_image_url
+from pcs_scraper.points_rider_scraper import get_points_per_speciality, get_points_per_season
+from helpers.plotter import plot_points_table_style, plot_points_per_speciality_table
 from pcs_scraper.season_results_scraper import get_season_results
-from discord import app_commands
+from helpers.format_helper import split_text_preserving_lines
+from helpers.country_helper import country_to_emoji
 from constants import MAX_FIELD_LENGTH
 from pcs_utils.rider_utils import *
 from dotenv import load_dotenv
+from discord import app_commands
+import discord
 import os
 
 load_dotenv()
@@ -21,24 +25,6 @@ class MyClient(discord.Client):
         await self.tree.sync(guild=discord.Object(id=GUILD_ID))
 
 client = MyClient()
-
-def split_text_preserving_lines(text, max_len=MAX_FIELD_LENGTH):
-    """
-    Split a text into chunks <= max_len without splitting lines.
-    Returns a list of strings.
-    """
-    lines = text.split("\n")
-    chunks = []
-    current = ""
-    for line in lines:
-        if len(current) + len(line) + 1 > max_len:
-            chunks.append(current)
-            current = line
-        else:
-            current += ("\n" if current else "") + line
-    if current:
-        chunks.append(current)
-    return chunks
 
 # birthdate command
 @client.tree.command(
@@ -198,7 +184,7 @@ async def team_history_command(interaction: discord.Interaction, name: str):
 @app_commands.describe(name="Full name of the rider")
 async def points_per_season_command(interaction: discord.Interaction, name: str):
     try:
-        points_per_season_history = get_rider_points_per_season_history(name)
+        points_per_season_history = get_points_per_season(name)
         if not points_per_season_history:
             await interaction.response.send_message(f"No points history found for '{name}'")
             return
@@ -225,7 +211,7 @@ async def points_per_season_command(interaction: discord.Interaction, name: str)
 @app_commands.describe(name="Full name of the rider")
 async def points_per_speciality_command(interaction: discord.Interaction, name: str):
     try:
-        points_data = get_rider_points_per_speciality(name)
+        points_data = get_points_per_speciality(name)
         if not points_data:
             await interaction.response.send_message(f"No points per speciality found for '{name}'")
             return
@@ -233,7 +219,7 @@ async def points_per_speciality_command(interaction: discord.Interaction, name: 
         image_buffer = plot_points_per_speciality_table(points_data, rider_name=name)
         file = discord.File(fp=image_buffer, filename="speciality_points.png")
         embed = discord.Embed(
-            title=f"{name} — PCS Points per Speciality",
+            title=f"{name} - PCS Points per Speciality",
             color=(255 << 16) + (255 << 8) + 255
         )
         embed.set_image(url="attachment://speciality_points.png")

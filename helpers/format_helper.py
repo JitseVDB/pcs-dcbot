@@ -1,4 +1,6 @@
+from constants import MAX_FIELD_LENGTH
 from unidecode import unidecode
+import discord
 import re
 
 def reformat_name(name: str) -> str:
@@ -46,3 +48,21 @@ def reformat_name(name: str) -> str:
     name = name.strip('-')
 
     return name
+
+def split_text_preserving_lines(text, max_len=MAX_FIELD_LENGTH):
+    """
+    Split a text into chunks <= max_len without splitting lines.
+    Returns a list of strings.
+    """
+    lines = text.split("\n")
+    chunks = []
+    current = ""
+    for line in lines:
+        if len(current) + len(line) + 1 > max_len:
+            chunks.append(current)
+            current = line
+        else:
+            current += ("\n" if current else "") + line
+    if current:
+        chunks.append(current)
+    return chunks
