@@ -1,7 +1,7 @@
 from pcs_scraper.rider_info_scraper import get_rider_age, get_rider_nationality, get_rider_weight, get_rider_height, get_rider_birthdate, get_rider_place_of_birth, get_rider_image_url
-from pcs_scraper.points_rider_scraper import get_points_per_speciality, get_points_per_season
+from pcs_scraper.rider_points_scraper import get_points_per_speciality, get_points_per_season
+from pcs_scraper.rider_season_scraper import get_season_results, get_rider_program
 from pcs_scraper.rider_team_history_scraper import get_rider_team_history
-from pcs_scraper.season_results_scraper import get_season_results
 from helpers.plotter import plot_points_table_style, plot_points_per_speciality_table
 from helpers.format_helper import split_text_preserving_lines
 from helpers.country_helper import country_to_emoji
@@ -325,5 +325,35 @@ async def season_results_cmd(interaction: discord.Interaction, name: str):
     # Send all embeds
     for embed in embeds:
         await interaction.followup.send(embed=embed)
+
+# rider program command
+@client.tree.command(
+    name="rider-program",
+    description="Get upcoming program of a rider",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.describe(name="Full name of the rider")
+async def rider_program(interaction: discord.Interaction, name: str):
+    await interaction.response.defer()
+
+    races = get_rider_program(name)
+    if not races:
+        await interaction.followup.send(f"No race program found for {name}.")
+        return
+
+    # Create a white embed
+    embed = discord.Embed(
+        title=f"{name} - Race Program",
+        color=(255 << 16) + (255 << 8) + 255  # white
+    )
+
+    # Build the description: "date - flag title"
+    description = ""
+    for race in races:
+        description += f"{race['date']} - {race['flag']} {race['title']}\n"
+
+    embed.description = description.strip()
+
+    await interaction.followup.send(embed=embed)
 
 client.run(token)

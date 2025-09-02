@@ -210,3 +210,53 @@ def get_season_results(name: str):
         return {}
 
     return parse_races(container)
+
+def get_rider_program(name: str):
+    """
+    Scrape a rider's upcoming or planned races from their PCS profile.
+
+    Args:
+        name (str): Rider's full name (e.g., "Tadej Pogacar").
+
+    Returns:
+        list[dict[str, str]]: List of races, each represented as a dictionary with keys:
+            - "date" (str): Date of the race (format as on PCS, e.g., "12.09").
+            - "title" (str): Official race title.
+            - "url" (str): Relative URL to the race's PCS page.
+            - "flag" (str): Flag representing the race location.
+    """
+    pcs_name = reformat_name(name)
+    url = rider_base_url + pcs_name
+
+    result = requests.get(url)
+    result.raise_for_status()
+    doc = BeautifulSoup(result.text, "html.parser")
+
+    container = doc.find("ul", class_="list dashed flex pad2")
+    if not container:
+        return []
+
+    races = []
+    for li in container.find_all("li"):
+        # Date
+        date_div = li.find("div", class_="bold")
+        date = date_div.get_text(strip=True) if date_div else ""
+
+        # Title and race URL
+        title_div = li.find("div", class_="ellipsis")
+        race_a = title_div.find("a") if title_div else None
+        title = race_a.get_text(strip=True) if race_a else ""
+        race_url = race_a["href"] if race_a else ""
+
+        # Flag
+        flag_span = title_div.find("span", class_="flag") if title_div else None
+        flag = flag_span["class"][-1] if flag_span and len(flag_span["class"]) > 1 else ""
+
+        races.append({
+            "date": date,
+            "title": title,
+            "url": race_url,
+            "flag": country_code_to_emoji(flag)
+        })
+
+    return races
