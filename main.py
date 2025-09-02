@@ -1,13 +1,13 @@
 from pcs_scraper.rider_info_scraper import get_rider_age, get_rider_nationality, get_rider_weight, get_rider_height, get_rider_birthdate, get_rider_place_of_birth, get_rider_image_url
 from pcs_scraper.points_rider_scraper import get_points_per_speciality, get_points_per_season
-from helpers.plotter import plot_points_table_style, plot_points_per_speciality_table
+from pcs_scraper.rider_team_history_scraper import get_rider_team_history
 from pcs_scraper.season_results_scraper import get_season_results
+from helpers.plotter import plot_points_table_style, plot_points_per_speciality_table
 from helpers.format_helper import split_text_preserving_lines
 from helpers.country_helper import country_to_emoji
 from constants import MAX_FIELD_LENGTH
-from pcs_utils.rider_utils import *
-from dotenv import load_dotenv
 from discord import app_commands
+from dotenv import load_dotenv
 import discord
 import os
 
