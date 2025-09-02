@@ -5,6 +5,21 @@ import requests
 import re
 
 def get_rider_team_history(name: str):
+    """
+    Scrape a rider's PCS profile and extract their team history.
+
+    Args:
+        name (str): Rider's full name (e.g., "Tadej Pogacar").
+
+    Returns:
+        list[dict[str, str | int]]: A list of dictionaries, one per season, with keys:
+            - "season" (int): Year of the season.
+            - "team_name" (str): Official team name for that season.
+            - "team_url" (str): Relative URL to the team's PCS profile.
+            - "class" (str): Team category (e.g., "WT", "CT", "CLUB").
+            - "since" (str): Start date of contract period (format "MM-DD").
+            - "until" (str): End date of contract period (format "MM-DD").
+    """
     pcs_name = reformat_name(name)
     url = rider_base_url + pcs_name
 

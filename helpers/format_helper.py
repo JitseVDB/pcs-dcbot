@@ -51,9 +51,15 @@ def reformat_name(name: str) -> str:
 
 def split_text_preserving_lines(text, max_len=MAX_FIELD_LENGTH):
     """
-    Split a text into chunks <= max_len without splitting lines.
-    Returns a list of strings.
-    """
+        Split text into chunks of at most `max_len` characters without breaking lines.
+
+        Args:
+            text (str): Input text to split.
+            max_len (int): Maximum allowed length of each chunk. Defaults to MAX_FIELD_LENGTH.
+
+        Returns:
+            list[str]: List of text chunks, each no longer than `max_len`.
+        """
     lines = text.split("\n")
     chunks = []
     current = ""

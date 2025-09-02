@@ -54,6 +54,18 @@ def get_points_per_speciality(name: str) -> dict[str, int]:
     return data
 
 def get_points_per_season(name: str) -> list[dict[str, int]]:
+    """
+      Scrape a rider's PCS profile and extract ranking points per season.
+
+      Args:
+          name (str): Rider's full name (e.g., "Tadej Pogacar").
+
+      Returns:
+          list[dict[str, int]]: A list of dictionaries, one per season, with keys:
+              - "season" (int): Year of the season.
+              - "points" (int): PCS points earned that season.
+              - "rank" (int): Rider's PCS ranking position for that season.
+    """
     pcs_name = reformat_name(name)
     url = rider_base_url + pcs_name
 

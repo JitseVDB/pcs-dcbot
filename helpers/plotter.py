@@ -2,6 +2,24 @@ import matplotlib.pyplot as plt
 import io
 
 def plot_points_per_speciality_table(points_data: dict, rider_name="Rider"):
+    """
+    Create a horizontal bar chart styled like a table for a rider's PCS points per speciality.
+
+    Args:
+        points_data (dict): Mapping of speciality keys to PCS points.
+            Expected keys (snake_case):
+                - "one_day_races"
+                - "gc"
+                - "time_trial"
+                - "sprint"
+                - "climber"
+                - "hills"
+        rider_name (str, optional): Rider's display name for the chart title. Defaults to "Rider".
+
+    Returns:
+        io.BytesIO | None: A buffer containing the PNG image of the plot.
+            Returns None if `points_data` is empty.
+    """
     SPECIALITY_COLORS = {
         "one_day_races": "limegreen",
         "gc": "red",
@@ -63,6 +81,20 @@ def plot_points_per_speciality_table(points_data: dict, rider_name="Rider"):
     return buffer
 
 def plot_points_table_style(points_data, rider_name="Rider"):
+    """
+    Create a horizontal bar chart styled like a table for a rider's PCS points per season.
+
+    Args:
+        points_data (list[dict]): List of dictionaries containing season data.
+            Each dict should include:
+                - "season" (int): Year of the season.
+                - "points" (int): PCS points earned that season.
+                - "rank" (int): Rider's PCS rank for that season.
+        rider_name (str, optional): Rider's display name for the chart title. Defaults to "Rider".
+
+    Returns:
+        io.BytesIO: A buffer containing the PNG image of the plot.
+    """
     seasons = [str(d["season"]) for d in points_data]
     points = [d["points"] for d in points_data]
     ranks = [d["rank"] for d in points_data]
