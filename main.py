@@ -410,7 +410,7 @@ async def rider_program(interaction: discord.Interaction, name1: str, name2: str
     name2="Full name of the second rider",
     season="The year of the season"
 )
-async def rider_program(interaction: discord.Interaction, name1: str, name2: str, season: int):
+async def compare_results(interaction: discord.Interaction, name1: str, name2: str, season: int):
     await interaction.response.defer()
 
     comparison = compare_results(name1, name2, season)
@@ -418,7 +418,13 @@ async def rider_program(interaction: discord.Interaction, name1: str, name2: str
         await interaction.followup.send(f"Comparison between season results of {name1} and {name2} failed.")
         return
 
-    description = ""
+    # Count wins
+    wins_name1 = sum(1 for entry in comparison if entry['winner'] == 'name1')
+    wins_name2 = sum(1 for entry in comparison if entry['winner'] == 'name2')
+
+    # Start description with head-to-head summary
+    description = f"🏆 **Head-to-Head:** {name1} {wins_name1} - {wins_name2} {name2}\n\n"
+
     for entry in comparison:
         race_line = f"**{entry['date']} - {entry['flag']} {entry['race']}**"
         stage = f" - {entry['stage_or_class']}" if entry['stage_or_class'] else ""
@@ -438,9 +444,9 @@ async def rider_program(interaction: discord.Interaction, name1: str, name2: str
     description_chunks = split_text_preserving_lines(description, MAX_EMBED_DESCRIPTION_LENGTH)
 
     embeds = []
-    for chunk in description_chunks:
+    for i, chunk in enumerate(description_chunks):
         embed = discord.Embed(
-            title=f"{name1} vs {name2} - Season Results Comparison",
+            title=f"{name1} vs {name2} - {season} Season Results Comparison",
             description=chunk,
             color=0xFFFFFF
         )
