@@ -121,3 +121,23 @@ def get_rider_image_url(name: str):
     img_src = doc.find("img")["src"]
     return pcs_base_url + img_src
 
+def get_active_seasons(name: str):
+    pcs_name = reformat_name(name)
+    url = rider_base_url + pcs_name
+
+    result = requests.get(url)
+    result.raise_for_status()
+    doc = BeautifulSoup(result.text, "html.parser")
+
+    container = doc.find("ul", class_="rdrSeasonNav")
+    if not container:
+        return []
+
+    # Extract all seasons from links
+    seasons = []
+    for a in container.find_all("a", class_="rdrFilterSeason"):
+        season = a.get("data-season")
+        if season:
+            seasons.append(int(season))
+
+    return seasons

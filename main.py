@@ -2,11 +2,14 @@ from pcs_scraper.rider_info_scraper import get_rider_age, get_rider_nationality,
 from pcs_scraper.rider_points_scraper import get_points_per_speciality, get_points_per_season
 from pcs_scraper.rider_season_scraper import get_season_results, get_rider_program
 from pcs_scraper.rider_team_history_scraper import get_rider_team_history
+from pcs_scraper.race_result_scraper import get_rider_result_in_race
+from pcs_scraper.race_info_scraper import get_race_flag
 from helpers.plotter import plot_points_table_style, plot_points_per_speciality_table
-from helpers.format_helper import split_text_preserving_lines
+from helpers.format_helper import split_text_preserving_lines, ordinal
 from helpers.country_helper import country_to_emoji
 from services.program_comparison import compare_programs
 from services.result_comparison import compare_results
+from services.past_results import get_past_results
 from constants import MAX_FIELD_LENGTH, MAX_EMBED_DESCRIPTION_LENGTH
 from discord import app_commands
 from dotenv import load_dotenv
@@ -382,7 +385,7 @@ async def rider_program(interaction: discord.Interaction, name1: str, name2: str
     # Create a white embed
     embed = discord.Embed(
         title=f"{name1} vs {name2} - Race Program Comparison",
-        color=(255 << 16) + (255 << 8) + 255  # white
+        color=(255 << 16) + (255 << 8) + 255
     )
 
     description = ""
@@ -455,5 +458,124 @@ async def compare_results(interaction: discord.Interaction, name1: str, name2: s
     # Send all embeds
     for embed in embeds:
         await interaction.followup.send(embed=embed)
+
+# Rider past results command
+@client.tree.command(
+    name="rider-past-results",
+    description="Show the past results of a rider in a given race across seasons",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.describe(
+    name="Full name of the rider",
+    race="Race name (e.g. 'Ronde Van Vlaanderen')"
+)
+async def rider_past_results(interaction: discord.Interaction, name: str, race: str):
+    await interaction.response.defer()
+
+    results = get_past_results(name, race)
+    race_flag = get_race_flag(race)
+    rider_nationality = get_rider_nationality(name)
+    rider_flag = country_to_emoji(rider_nationality)
+
+    if not results:
+        await interaction.followup.send(f"Could not retrieve past results for {name} in {race}.")
+        return
+
+    # Embed title with flags
+    title = f"{rider_flag} {name} – {race_flag} {race} Past Results"
+
+    description_lines = []
+    for season in sorted(results.keys(), reverse=True):
+        res = results[season]
+        if res:  # Only include seasons where rider had a result
+            # Add medal for top 3
+            medal = ""
+            if res == "1":
+                medal = " 🥇"
+            elif res == "2":
+                medal = " 🥈"
+            elif res == "3":
+                medal = " 🥉"
+
+            description_lines.append(f"**{season}:** {res}{medal}")
+
+    if not description_lines:
+        await interaction.followup.send(f"No past results available for {name} in {race}.")
+        return
+
+    description = "\n".join(description_lines)
+
+    # Split description if too long
+    description_chunks = split_text_preserving_lines(description, MAX_EMBED_DESCRIPTION_LENGTH)
+
+    embeds = []
+    for chunk in description_chunks:
+        embed = discord.Embed(
+            title=title,
+            description=chunk,
+            color=0xFFFFFF
+        )
+        embeds.append(embed)
+
+    for embed in embeds:
+        await interaction.followup.send(embed=embed)
+
+# Rider single race result command
+@client.tree.command(
+    name="rider-race-result",
+    description="Show the result of a rider in a specific race and season",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.describe(
+    name="Full name of the rider",
+    race="Race name (e.g., 'Ronde Van Vlaanderen')",
+    season="Season year"
+)
+async def rider_race_result(interaction: discord.Interaction, name: str, race: str, season: int):
+    await interaction.response.defer()
+
+    result = get_rider_result_in_race(name, race, season)
+    if not result:
+        await interaction.followup.send(f"{name} did not participate in {race} during {season}.")
+        return
+
+    try:
+        result_int = int(result)
+        result_str = ordinal(result_int)
+    except ValueError:
+        result_str = result  # fallback if rank is not a number
+
+    # Add medal emoji for podium
+    medal = ""
+    if result_str.startswith("1"):
+        medal = " 🥇"
+    elif result_str.startswith("2"):
+        medal = " 🥈"
+    elif result_str.startswith("3"):
+        medal = " 🥉"
+
+    await interaction.followup.send(f"{name} got **{result_str}{medal}** place in {race} ({season})")
+
+# Race flag command
+@client.tree.command(
+    name="race-flag",
+    description="Get the flag emoji of a race",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.describe(
+    race="Race name (e.g., 'Ronde Van Vlaanderen')"
+)
+async def race_flag_command(interaction: discord.Interaction, race: str):
+    await interaction.response.defer()
+
+    try:
+        emoji = get_race_flag(race)
+        if not emoji:
+            await interaction.followup.send(f"Could not find the flag for {race}.")
+            return
+
+        await interaction.followup.send(f"The flag for **{race}** is {emoji}")
+    except Exception as e:
+        await interaction.followup.send(f"An error occurred while fetching the flag for {race}: {e}")
 
 client.run(token)

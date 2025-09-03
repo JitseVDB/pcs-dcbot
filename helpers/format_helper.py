@@ -90,3 +90,14 @@ def split_embed_preserving_lines(text, max_len=MAX_EMBED_DESCRIPTION_LENGTH):
     if current:
         chunks.append(current)
     return chunks
+
+def ordinal(n: int) -> str:
+    """
+    Convert an integer into its ordinal representation.
+    Examples: 1 -> 1st, 2 -> 2nd, 3 -> 3rd, 4 -> 4th, 11 -> 11th, 23 -> 23rd
+    """
+    if 10 <= n % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
